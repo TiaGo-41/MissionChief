@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Centre de Commandement Pompiers</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css">
+
+ <!-- PWA Configuration -->
+    <link rel="manifest" href="https://preview--fire-command-center-nexus.lovable.app/manifest.json">
+    <meta name="theme-color" content="#dc2626">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CommandePompiers">
+    <link rel="apple-touch-icon" href="https://preview--fire-command-center-nexus.lovable.app/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://preview--fire-command-center-nexus.lovable.app/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://preview--fire-command-center-nexus.lovable.app/icon-512.png">
+    
+</head>
+<body>
+  <nav>
+    <h1>Fire Command Center</h1>
+    <button id="btn-logout">Déconnexion</button>
+  </nav>
+
+  <main class="dashboard" id="dashboard" style="display:none;">
+    <p class="user-info" id="user-email"></p>
+
+    <section class="card">
+      <h2>Interventions</h2>
+      <textarea id="interventionInput" placeholder="Décrire l'intervention..."></textarea>
+      <button class="add-btn" id="btn-add-intervention">Ajouter</button>
+      <ul class="list" id="interventionsList"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Véhicules</h2>
+      <textarea id="vehiculeInput" placeholder="Décrire le véhicule..."></textarea>
+      <button class="add-btn" id="btn-add-vehicule">Ajouter</button>
+      <ul class="list" id="vehiculesList"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Personnel</h2>
+      <textarea id="personnelInput" placeholder="Décrire le personnel..."></textarea>
+      <button class="add-btn" id="btn-add-personnel">Ajouter</button>
+      <ul class="list" id="personnelList"></ul>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" defer></script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const firebaseConfig = {
+        apiKey: "AIzaSyDYXvnMbTmjeFY2g8fgRlAOwxFJSSpDOKs",
+        authDomain: "missionchief-75978.firebaseapp.com",
+        databaseURL: "https://missionchief-75978-default-rtdb.firebaseio.com",
+        projectId: "missionchief-75978",
+        storageBucket: "missionchief-75978.firebasestorage.app",
+        messagingSenderId: "56091748119",
+        appId: "1:56091748119:web:34fcd1447f83c961477952",
+        measurementId: "G-PJVJTQZ5CY"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.database();
+
+      const dashboard = document.getElementById("dashboard");
+      const userEmail = document.getElementById("user-email");
+      const btnLogout = document.getElementById("btn-logout");
+
+      const btnAddInt = document.getElementById("btn-add-intervention");
+      const btnAddVhl = document.getElementById("btn-add-vehicule");
+      const btnAddPers = document.getElementById("btn-add-personnel");
+
+      btnLogout.onclick = () => auth.signOut();
+
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          dashboard.style.display = "grid";
+          userEmail.textContent = `Connecté en tant que : ${user.email}`;
+          loadLists(user.uid);
+        } else {
+          dashboard.style.display = "none";
+          userEmail.textContent = "";
+          // Redirection vers login ? ou afficher formulaire login ici ?
+        }
+      });
+
+      // Fonctions d'ajout et chargement simplifiés
+      function loadLists(uid) {
+        ["interventions", "vehicules", "personnel"].forEach(cat => {
+          db.ref(`${uid}/${cat}`).on('value', snapshot => {
+            const listElem = document.getElementById(cat + "List");
+            listElem.innerHTML = "";
+            if(snapshot.exists()) {
+              snapshot.forEach(child => {
+                const li = document.createElement("li");
+                li.textContent = child.val();
+                listElem.appendChild(li);
+              });
+            }
+          });
+        });
+      }
+
+      btnAddInt.onclick = () => addItem("interventions", "interventionInput");
+      btnAddVhl.onclick = () => addItem("vehicules", "vehiculeInput");
+      btnAddPers.onclick = () => addItem("personnel", "personnelInput");
+
+      function addItem(category, inputId) {
+        const input = document.getElementById(inputId);
+        const val = input.value.trim();
+        if(!val) return alert("Veuillez entrer une valeur.");
+        const uid = auth.currentUser.uid;
+        const newRef = db.ref(`${uid}/${category}`).push();
+        newRef.set(val);
+        input.value = "";
+      }
+    });
+  </script>
+</body>
+</html>
